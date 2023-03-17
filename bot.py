@@ -8,6 +8,7 @@ client = discord.Client(intents=intents)
 
 openai.api_key = os.environ['OPENAI_API_KEY']
 model = "gpt-3.5-turbo"
+text_limit = 2000
 
 sessions = {}
 
@@ -29,7 +30,8 @@ async def on_message(message):
         answer = response['choices'][0]['message']['content']
         sessions[thread.id] = messages
         sessions[thread.id].append({"role": "assistant", "content": answer})
-        await thread.send(answer)
+        for i in range(0, len(answer), text_limit):
+            await thread.send(answer[i:i + text_limit])
 
         response = openai.ChatCompletion.create(
             model=model,
@@ -50,7 +52,8 @@ async def on_message(message):
         )
         answer = response['choices'][0]['message']['content']
         sessions[message.channel.id].append({"role": "assistant", "content": answer})
-        await message.channel.send(answer)
+        for i in range(0, len(answer), text_limit):
+            await message.channel.send(answer[i:i + text_limit])
 
 
 client.run(os.environ['DISCORD_TOKEN'])
