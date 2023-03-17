@@ -9,6 +9,8 @@ client = discord.Client(intents=intents)
 openai.api_key = os.environ['OPENAI_API_KEY']
 model = "gpt-3.5-turbo"
 
+sessions = {}
+
 
 @client.event
 async def on_message(message):
@@ -17,13 +19,16 @@ async def on_message(message):
 
     if message.channel.type == discord.ChannelType.text:
         thread = await message.create_thread(name='New chat', auto_archive_duration=60)
+        messages = [
+            {"role": "user", "content": message.content}
+        ]
         response = openai.ChatCompletion.create(
             model=model,
-            messages=[
-                {"role": "user", "content": message.content}
-            ]
+            messages=messages
         )
         answer = response['choices'][0]['message']['content']
+        sessions[thread.id] = messages
+        sessions[thread.id].append({"role": "assistant", "content": answer})
         await thread.send(answer)
 
         response = openai.ChatCompletion.create(
@@ -37,15 +42,14 @@ async def on_message(message):
             name=answer
         )
     elif message.channel.type == discord.ChannelType.public_thread:
-        messages = [
-            {"role": "user", "content": message.content}
-        ]
+        sessions[message.channel.id].append({"role": "user", "content": message.content})
 
         response = openai.ChatCompletion.create(
             model=model,
-            messages=messages
+            messages=sessions[message.channel.id]
         )
         answer = response['choices'][0]['message']['content']
+        sessions[message.channel.id].append({"role": "assistant", "content": answer})
         await message.channel.send(answer)
 
 
