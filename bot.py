@@ -12,8 +12,10 @@ model = "gpt-3.5-turbo"
 
 @client.event
 async def on_message(query):
+    if query.author == client.user:
+        return
+
     messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": query.content}
     ]
 
